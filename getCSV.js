@@ -3,6 +3,12 @@ const fs = require('fs');
 const fetch = require('node-fetch');
 const cliProgress = require('cli-progress');
 
+/**
+1.change lastEpisode.
+2.set url to the first episode.
+3.change datasheet.
+*/
+
 let episode = 0, lastEpisode = 25;
 let lowestScore = Infinity;
 let highestScore = 0;
@@ -11,7 +17,6 @@ let urlPrefix = 'https://www.imdb.com/';
 let datasheet = './datas/StrangerThingsData.csv'
 const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
  
-// start the progress bar with a total value of 200 and start value of 0
 bar.start(lastEpisode, episode);
  
 
@@ -27,7 +32,6 @@ function fetchData(url){
 		//let season = $('.bp_heading').first().text();
 		url = urlPrefix + $('div .np_next').attr('href');
 		episode++;
-		// update the current value in your application..
 		bar.update(episode);
 		//let regex = /\d+/;
 		//season = season.match(regex)[0];
