@@ -1,6 +1,6 @@
 const cheerio = require('cheerio');
 const fs = require('fs');
-const fetch = require('node-fetch');
+const axios = require('axios')
 const cliProgress = require('cli-progress');
 
 /**
@@ -9,45 +9,47 @@ const cliProgress = require('cli-progress');
 3.change datasheet.
 */
 
-let episode = 0, lastEpisode = 25;
-let lowestScore = Infinity;
-let highestScore = 0;
-let url = 'https://www.imdb.com/title/tt4593118';
+let LAST_EPISODE = 56;
+let url = 'https://www.imdb.com/title/tt9817604/?ref_=ttep_ep1';
 let urlPrefix = 'https://www.imdb.com/';
-let datasheet = './datas/StrangerThingsData.csv'
+let datasheet = './datas/SellingSunsetData.csv'
 const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
- 
-bar.start(lastEpisode, episode);
- 
+
+bar.start(LAST_EPISODE, 1);
+
+const axiosConfig = {
+  method: 'get',
+  maxBodyLength: Infinity,
+  headers: { 
+    'Content-Type': 'text/plain',
+    'Access-Control-Allow-Origin': '*',
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 13; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36'
+  },
+}
 
 fs.appendFileSync(datasheet, 'episode,score\n');
 
-function fetchData(url){
-    if(episode < lastEpisode){
-	fetch(url)
-	    .then(res => res.text())
-	    .then(body => {
-		let $ = cheerio.load(body);
-		let score = $('span[itemprop=ratingValue]').html();
-		//let season = $('.bp_heading').first().text();
-		url = urlPrefix + $('div .np_next').attr('href');
-		episode++;
-		bar.update(episode);
-		//let regex = /\d+/;
-		//season = season.match(regex)[0];
-		//console.log(season);
-		fetchData(url);
-		fs.appendFileSync(datasheet, `${episode},${score}\n`);
-	    })
-	    .catch(err => {
-		throw err;
-	    });
-    }else{
-	bar.stop();
-    }
-
-    return;
+const fetchData = async (episodeCount, episodeURL) => {
+  bar.update(episodeCount)
+  const res = await axios({
+    ...axiosConfig,
+    url: episodeURL
+  });
+  const $ = cheerio.load(res.data);
+  const score = $('span.sc-bde20123-1').html();
+  fs.appendFileSync(datasheet, `${episodeCount},${score}\n`, res);
+  return urlPrefix + $('a[data-testid="hero-subnav-bar-next-episode-button"]').attr('href');
 }
 
-fetchData(url);
+const main = async () => {
+  let startingEpisode = 1
+  while (startingEpisode <= LAST_EPISODE) {
+    url = await fetchData(startingEpisode, url)
+    startingEpisode += 1
+  }
+}
 
+main()
+  .then(() => {
+  bar.stop()
+})
